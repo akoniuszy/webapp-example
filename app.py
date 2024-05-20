@@ -1,0 +1,44 @@
+from services.pbiembedservice import PbiEmbedService
+from utils import Utils
+from flask import Flask, render_template, send_from_directory, request, jsonify
+import json
+import os
+
+# Initialize the Flask app
+app = Flask(__name__)
+
+# Load configuration
+app.config.from_object('config.BaseConfig')
+
+@app.route('/REPLATE-REPORT-NAME')
+def index():
+    '''Returns a static HTML page'''
+
+    pagename = request.args.get('pagename')
+    if pagename:
+        return render_template('index.html', pagename=pagename)
+    else:
+        return render_template('index.html')
+
+@app.route('/REPLATE-REPORT-NAME/getembedinfo', methods=['GET'])
+def get_embed_info():
+    '''Returns report embed configuration'''
+
+    config_result = Utils.check_config(app)
+    if config_result is not None:
+        return json.dumps({'errorMsg': config_result}), 500
+
+    try:
+        embed_info = PbiEmbedService().get_embed_params_for_single_report(app.config['WORKSPACE_ID'], app.config['REPORT_ID'])
+        return embed_info
+    except Exception as ex:
+        return json.dumps({'errorMsg': str(ex)}), 500
+
+@app.route('/favicon.ico', methods=['GET'])
+def getfavicon():
+    '''Returns path of the favicon to be rendered'''
+
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'img/favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+if __name__ == '__main__':
+    app.run()
